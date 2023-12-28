@@ -1,10 +1,10 @@
 from collections.abc import Sequence
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import numpy as np
 import torch
 
-from sahi.annotation import BoundingBox, Category, Mask
+from sahi.annotation import BoundingBox, Category, Mask, Keypoints
 from sahi.prediction import ObjectPrediction
 
 
@@ -190,6 +190,24 @@ def get_merged_category(pred1: ObjectPrediction, pred2: ObjectPrediction) -> Cat
         return pred2.category
 
 
+def get_merged_keypoints(pred1: ObjectPrediction, pred2: ObjectPrediction) -> Tuple[list, list]:
+    kpts1: List[float] = pred1.keypoints.to_xy_list()
+    kpts2: List[float] = pred2.keypoints.to_xy_list()
+    kpt_scores1: List[float] = pred1.kpts_scores
+    kpt_scores2: List[float] = pred2.kpts_scores
+
+    kpts, kpt_scores = [], []
+    for i in range(len(kpt_scores1)):
+        if kpt_scores1[i] >= kpt_scores2[i]:
+            kpts.append(kpts1[i])
+            kpt_scores.append(kpt_scores1[i])
+        else:
+            kpts.append(kpts2[i])
+            kpt_scores.append(kpt_scores2[i])
+
+    return kpts, kpt_scores
+
+
 def merge_object_prediction_pair(
     pred1: ObjectPrediction,
     pred2: ObjectPrediction,
@@ -198,6 +216,8 @@ def merge_object_prediction_pair(
     merged_bbox: BoundingBox = get_merged_bbox(pred1, pred2)
     merged_score: float = get_merged_score(pred1, pred2)
     merged_category: Category = get_merged_category(pred1, pred2)
+    merged_keypoints, kpt_scores = get_merged_keypoints(pred1, pred2)
+
     if pred1.mask and pred2.mask:
         merged_mask: Mask = get_merged_mask(pred1, pred2)
         bool_mask = merged_mask.bool_mask
@@ -213,4 +233,6 @@ def merge_object_prediction_pair(
         bool_mask=bool_mask,
         shift_amount=shift_amount,
         full_shape=full_shape,
+        keypoints=merged_keypoints,
+        kpts_scores=kpt_scores
     )

@@ -49,6 +49,8 @@ class ObjectPrediction(ObjectAnnotation):
         score: Optional[float] = 0,
         shift_amount: Optional[List[int]] = [0, 0],
         full_shape: Optional[List[int]] = None,
+        keypoints: Optional[List[List[int]]] = None,
+        kpts_scores: Optional[List[float]] = None,
     ):
         """
         Creates ObjectPrediction from bbox, score, category_id, category_name, bool_mask.
@@ -79,7 +81,9 @@ class ObjectPrediction(ObjectAnnotation):
             category_name=category_name,
             shift_amount=shift_amount,
             full_shape=full_shape,
+            keypoints=keypoints
         )
+        self.kpts_scores = kpts_scores
 
     def get_shifted_object_prediction(self):
         """
@@ -96,6 +100,8 @@ class ObjectPrediction(ObjectAnnotation):
                 category_name=self.category.name,
                 shift_amount=[0, 0],
                 full_shape=self.mask.get_shifted_mask().full_shape,
+                keypoints=None,
+                kpts_scores=None
             )
         else:
             return ObjectPrediction(
@@ -106,6 +112,8 @@ class ObjectPrediction(ObjectAnnotation):
                 category_name=self.category.name,
                 shift_amount=[0, 0],
                 full_shape=None,
+                keypoints=self.keypoints.get_shifted_kpts().to_xy_list(),
+                kpts_scores=self.kpts_scores
             )
 
     def to_coco_prediction(self, image_id=None):

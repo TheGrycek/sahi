@@ -459,6 +459,26 @@ def visualize_object_predictions(
             rgb_mask = apply_color_mask(mask, color)
             image = cv2.addWeighted(image, 1, rgb_mask, 0.6, 0)
 
+    # add keypoints to image if present
+    for object_prediction in object_prediction_list:
+        object_prediction = object_prediction.deepcopy()
+        if object_prediction.keypoints is not None:
+            if colors is not None:
+                color = colors(object_prediction.category.id)
+
+            keypoints = object_prediction.keypoints.to_xy_list()
+            for keypoint in keypoints:
+                # set bbox points
+                center = (int(keypoint[0]), int(keypoint[1]))
+                # visualize boxes
+                cv2.circle(
+                    image,
+                    center,
+                    radius=rect_th,
+                    color=color,
+                    thickness=rect_th
+                )
+
     # add bboxes to image if present
     for object_prediction in object_prediction_list:
         # deepcopy object_prediction_list so that original is not altered

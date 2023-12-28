@@ -22,6 +22,36 @@ except ImportError:
     use_rle = False
 
 
+class Keypoints:
+    def __init__(self, keypoints: List[List[float]], shift_amount: List[int] = [0, 0]):
+        self.keypoints = keypoints
+        self.shift_x = shift_amount[0]
+        self.shift_y = shift_amount[1]
+
+    @property
+    def shift_amount(self):
+        """
+        Returns the shift amount of the keypoint slice as [shift_x, shift_y]
+        """
+        return [self.shift_x, self.shift_y]
+
+    def to_xy_list(self):
+        """
+        Returns: [[x1, y1], [x2, y2] ...]
+        """
+        return self.keypoints
+
+    def get_shifted_kpts(self):
+        """
+        Returns: shifted Keypoints
+        """
+        kpts = []
+        for kpt in self.keypoints:
+            kpts.append([kpt[0] + self.shift_x, kpt[1] + self.shift_y])
+
+        return Keypoints(kpts)
+
+
 class BoundingBox:
     """
     Bounding box of the annotation.
@@ -539,6 +569,7 @@ class ObjectAnnotation:
     def __init__(
         self,
         bbox: Optional[List[int]] = None,
+        keypoints: Optional[List[List[int]]] = None,
         bool_mask: Optional[np.ndarray] = None,
         category_id: Optional[int] = None,
         category_name: Optional[str] = None,
@@ -596,8 +627,10 @@ class ObjectAnnotation:
             xmax = bbox[2]
             ymax = bbox[3]
         bbox = [xmin, ymin, xmax, ymax]
+
         # set bbox
         self.bbox = BoundingBox(bbox, shift_amount)
+        self.keypoints = Keypoints(keypoints, shift_amount)
 
         category_name = category_name if category_name else str(category_id)
         self.category = Category(
@@ -702,6 +735,7 @@ class ObjectAnnotation:
                 category_name=self.category.name,
                 shift_amount=[0, 0],
                 full_shape=self.mask.get_shifted_mask().full_shape,
+                keypoints=None
             )
         else:
             return ObjectAnnotation(
@@ -711,6 +745,7 @@ class ObjectAnnotation:
                 category_name=self.category.name,
                 shift_amount=[0, 0],
                 full_shape=None,
+                keypoints=self.keypoints.get_shifted_kpts().to_xy_list()
             )
 
     def __repr__(self):
